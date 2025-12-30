@@ -1,28 +1,27 @@
 # ESTÁGIO 1: Build da Aplicação
-FROM debian:bookworm-slim AS build-env
+# Usamos uma imagem que já possui o Flutter instalado e configurado
+FROM ghcr.io/cirruslabs/flutter:stable AS build-env
 
-RUN apt-get update && apt-get install -y \
-    curl git wget unzip ca-certificates libglu1-mesa \
-    && apt-get clean
-
-# Configura o Flutter SDK (Branch Stable)
-RUN git clone https://github.com/flutter/flutter.git -b stable --depth 1 /usr/local/flutter
-ENV PATH="/usr/local/flutter/bin:/usr/local/flutter/bin/cache/dart-sdk/bin:${PATH}"
-
-RUN flutter config --enable-web
-RUN flutter doctor
-
+# Define o diretório de trabalho
 WORKDIR /app
+
+# OTIMIZAÇÃO DE CACHE: Copiamos apenas os arquivos de dependências primeiro
+# Isso faz com que o 'pub get' só rode se você mudar as bibliotecas
+COPY pubspec.yaml pubspec.lock ./
+RUN flutter pub get
+
+# Agora copiamos o restante do código
 COPY . .
 
-RUN flutter pub get
-# Build usando CanvasKit para melhor fidelidade visual na assinatura
-RUN flutter build web --release --web-renderer canvaskit
+# Build otimizado
+# --no-pub: pula a verificação de pacotes pois já fizemos acima
+# --web-renderer canvaskit: mantém a alta fidelidade da assinatura
+RUN flutter build web --release --web-renderer canvaskit --no-pub
 
-# ESTÁGIO 2: Servidor Nginx de Produção
+# ESTÁGIO 2: Servidor Nginx (Execução)
 FROM nginx:alpine
 
-# Configuração para suportar Single Page Application (SPA) e evitar erro 404
+# Configuração SPA para evitar erro 404 ao atualizar a página
 RUN echo 'server { \
     listen 80; \
     location / { \
@@ -32,7 +31,7 @@ RUN echo 'server { \
     } \
 }' > /etc/nginx/conf.d/default.conf
 
-# Copia os arquivos do build anterior
+# Copia apenas os arquivos necessários do estágio de build
 COPY --from=build-env /app/build/web /usr/share/nginx/html
 
 EXPOSE 80

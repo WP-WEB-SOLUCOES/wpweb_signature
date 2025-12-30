@@ -17,6 +17,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
+          command_timeout: 60m
           port: 22
           script: |
             # 1. Entra na pasta correta
