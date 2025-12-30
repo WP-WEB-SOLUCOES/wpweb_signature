@@ -1,43 +1,16 @@
-name: Deploy Portal WP Web (Build Externo)
+version: '3.8'
 
-on:
-  push:
-    branches: [ main ]
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout do código
-        uses: actions/checkout@v3
-
-      - name: Instalar Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-
-      - name: Build do Projeto Web
-        run: |
-          flutter pub get
-          flutter build web --release --web-renderer canvaskit
-
-      - name: Enviar Build para a VPS (SCP)
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          source: "build/web,Dockerfile,docker-compose.yml"
-          target: "/home/ubuntu/WPWebSolucoes-signature"
-          strip_components: 0
-
-      - name: Reiniciar Container na VPS
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            cd /home/ubuntu/WPWebSolucoes-signature
-            docker compose up -d --build
-            docker image prune -f
+services:
+  signature-portal:
+    build: .
+    container_name: wpweb_signature_portal
+    # Mapeia a porta 8080 da VPS para a porta 80 do Nginx dentro do container
+    ports:
+      - "8080:80"
+    # Garante que o site suba sozinho se a VPS for reiniciada
+    restart: always
+    # Opcional: Define limites de memória para não travar a VPS
+    deploy:
+      resources:
+        limits:
+          memory: 256M
