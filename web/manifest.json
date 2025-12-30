@@ -1,6 +1,6 @@
 {
-    "name": "wpweb_signature",
-    "short_name": "wpweb_signature",
+    "name": "WP Web - Contratos",
+    "short_name": "WP Web - Contratos",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
