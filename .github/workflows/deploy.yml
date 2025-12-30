@@ -2,32 +2,46 @@ name: Deploy Portal WP Web
 
 on:
   push:
-    branches: [ main ] # Dispara o deploy quando houver push na main
+    branches: [ main ]
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout do código
         uses: actions/checkout@v3
 
-      - name: Executar Deploy via SSH
+      - name: Instalar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Build do Projeto Web
+        run: |
+          flutter pub get
+          flutter build web --release --web-renderer canvaskit
+
+      # PASSO VITAL: Ele envia a pasta build/web que o GitHub acabou de criar
+      - name: Enviar arquivos para a VPS via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          source: "build/web,Dockerfile,docker-compose.yml"
+          target: "/home/ubuntu/WPWebSolucoes-signature"
+          strip_components: 0
+
+      # PASSO FINAL: Avisa a VPS para atualizar o container
+      - name: Restart do Docker na VPS
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          command_timeout: 60m
           port: 22
           script: |
-            # 1. Entra na pasta correta
             cd /home/ubuntu/WPWebSolucoes-signature
-
-            # 2. Puxa a versão mais nova do GitHub
-            git pull origin main
-
-            # 3. Reconstrói o container Docker
             docker compose up -d --build
-
-            # 4. Limpa lixo de imagens antigas para economizar espaço na VPS
             docker image prune -f
