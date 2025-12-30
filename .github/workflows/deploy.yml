@@ -1,4 +1,17 @@
-- name: Executar Deploy via SSH
+name: Deploy Portal WP Web
+
+on:
+  push:
+    branches: [ main ] # Dispara o deploy quando houver push na main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Executar Deploy via SSH
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -6,12 +19,14 @@
           key: ${{ secrets.SSH_KEY }}
           port: 22
           script: |
-            # Entra na pasta do usuário ubuntu
-            cd /home/ubuntu/WPWebSolucoes-signature 
+            # 1. Entra na pasta correta
+            cd /home/ubuntu/WPWebSolucoes-signature
 
-            # Puxa o código novo
+            # 2. Puxa a versão mais nova do GitHub
             git pull origin main
 
-            # Sobe o Docker
+            # 3. Reconstrói o container Docker
             docker compose up -d --build
+
+            # 4. Limpa lixo de imagens antigas para economizar espaço na VPS
             docker image prune -f
