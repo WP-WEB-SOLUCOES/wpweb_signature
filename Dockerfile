@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean
 
 # Configura o Flutter SDK (Branch Stable)
-RUN git clone https://github.com/flutter/flutter.git -b stable /usr/local/flutter
+RUN git clone https://github.com/flutter/flutter.git -b stable --depth 1 /usr/local/flutter
 ENV PATH="/usr/local/flutter/bin:/usr/local/flutter/bin/cache/dart-sdk/bin:${PATH}"
 
 RUN flutter config --enable-web
