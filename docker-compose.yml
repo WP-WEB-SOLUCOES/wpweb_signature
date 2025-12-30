@@ -1,0 +1,21 @@
+services:
+  signature-portal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wpweb_signature_portal
+    restart: always
+    # Alterado para 8080 para permitir que o Nginx da VPS gerencie o subdomínio e SSL
+    ports:
+      - "8080:80"
+    networks:
+      - wpweb-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  wpweb-network:
+    driver: bridge
